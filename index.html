@@ -23,7 +23,7 @@ header p{font-size:16px;color:var(--encre2);font-style:italic}
 .outils{position:fixed;left:22px;bottom:18px;z-index:10;display:flex;gap:8px}
 .outils button{font-family:inherit;font-size:14px;padding:7px 14px;border:1px solid var(--trait);background:var(--carte);color:var(--encre2);border-radius:8px;cursor:pointer}
 .outils button:hover{border-color:var(--encre3);color:var(--encre)}
-#scene{position:absolute;inset:0;cursor:grab}
+#scene{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
 #scene:active{cursor:grabbing}
 .lien{fill:none;stroke:var(--trait);stroke-width:1.5px}
 .noeud{cursor:pointer}
@@ -199,9 +199,10 @@ const zoom = d3.zoom().scaleExtent([0.35, 2.5]).on("zoom", ev => g.attr("transfo
 svg.call(zoom).on("dblclick.zoom", null);
 
 function cadrer(d){
-  const l = window.innerWidth, h = window.innerHeight;
-  const k = d3.zoomTransform(svg.node()).k;
-  const panneauOuvert = window.innerWidth > 720;
+  const l = svg.node().clientWidth, h = svg.node().clientHeight;
+  let k = d3.zoomTransform(svg.node()).k;
+  if (k < 0.7) k = 1;
+  const panneauOuvert = l > 720;
   const cx = (l - (panneauOuvert ? 420 : 0)) * 0.38;
   svg.transition().duration(420).call(zoom.transform,
     d3.zoomIdentity.translate(cx - d.y * k, h * 0.45 - d.x * k).scale(k));
@@ -209,7 +210,7 @@ function cadrer(d){
 
 function centrer(){
   svg.transition().duration(420).call(zoom.transform,
-    d3.zoomIdentity.translate(90, window.innerHeight * 0.45).scale(1));
+    d3.zoomIdentity.translate(90, svg.node().clientHeight * 0.45).scale(1));
 }
 
 document.getElementById("btn-replier").onclick = () => {
