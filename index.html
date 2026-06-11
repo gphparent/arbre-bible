@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L'arbre de la Bible — explorer sa structure, branche par branche</title>
+<meta name="description" content="Un arbre interactif pour comprendre comment la Bible est construite : testaments, grandes familles de livres, livres et sections, chacun expliqué simplement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --parchemin:#f6f1e7; --encre:#2b2620; --encre2:#5c534a; --encre3:#8a7f72;
+  --at:#41684f; --at-doux:#6e8f7a; --nt:#7a3e4e; --nt-doux:#a06b78;
+  --or:#a8842e; --carte:#fffdf8; --trait:#ddd2bf;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'EB Garamond',Georgia,serif;background:var(--parchemin);color:var(--encre);overflow:hidden}
+header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:baseline;gap:14px;padding:14px 22px;background:linear-gradient(var(--parchemin) 70%,rgba(246,241,231,0));pointer-events:none}
+header h1{font-size:26px;font-weight:600;letter-spacing:.2px}
+header p{font-size:16px;color:var(--encre2);font-style:italic}
+.outils{position:fixed;left:22px;bottom:18px;z-index:10;display:flex;gap:8px}
+.outils button{font-family:inherit;font-size:14px;padding:7px 14px;border:1px solid var(--trait);background:var(--carte);color:var(--encre2);border-radius:8px;cursor:pointer}
+.outils button:hover{border-color:var(--encre3);color:var(--encre)}
+#scene{position:absolute;inset:0;cursor:grab}
+#scene:active{cursor:grabbing}
+.lien{fill:none;stroke:var(--trait);stroke-width:1.5px}
+.noeud{cursor:pointer}
+.noeud circle{stroke-width:1.5px;transition:r .15s}
+.noeud:hover circle{r:8}
+.noeud text{font-size:16.5px;fill:var(--encre);paint-order:stroke;stroke:var(--parchemin);stroke-width:4px;stroke-linejoin:round}
+.noeud .ss{font-size:12.5px;fill:var(--encre3);font-style:italic}
+.noeud.actif text:first-of-type{font-weight:600;fill:var(--or)}
+#panneau{position:fixed;top:0;right:0;bottom:0;width:min(420px,92vw);z-index:20;background:var(--carte);border-left:1px solid var(--trait);box-shadow:-12px 0 30px rgba(60,45,20,.08);transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column}
+#panneau.ouvert{transform:translateX(0)}
+#panneau .haut{padding:20px 26px 0;flex:0 0 auto}
+#fil{font-size:13.5px;color:var(--encre3);margin-bottom:10px;line-height:1.5}
+#fil a{color:var(--encre3);text-decoration:none;cursor:pointer}
+#fil a:hover{color:var(--or)}
+#panneau h2{font-size:30px;font-weight:600;line-height:1.15}
+#ptitre{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#pref{font-size:13px;color:var(--carte);background:var(--encre3);padding:2px 9px;border-radius:20px;white-space:nowrap}
+#psub{font-style:italic;color:var(--encre2);font-size:17px;margin-top:4px}
+#pcorps{padding:14px 26px 20px;overflow-y:auto;flex:1}
+#pcorps p{font-size:17.5px;line-height:1.62;margin-bottom:12px;text-align:justify;hyphens:auto}
+#enfants{padding:0 26px 26px;flex:0 0 auto}
+#enfants .et{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--encre3);margin-bottom:8px}
+#enfants .puces{display:flex;flex-wrap:wrap;gap:7px}
+#enfants button{font-family:inherit;font-size:14.5px;padding:5px 13px;border:1px solid var(--trait);border-radius:18px;background:transparent;color:var(--encre2);cursor:pointer}
+#enfants button:hover{border-color:var(--or);color:var(--or)}
+#fermer{position:absolute;top:14px;right:16px;font-family:inherit;font-size:22px;line-height:1;border:none;background:none;color:var(--encre3);cursor:pointer;padding:6px}
+#fermer:hover{color:var(--encre)}
+footer{position:fixed;right:18px;bottom:14px;z-index:5;font-size:13px;color:var(--encre3);font-style:italic;pointer-events:none}
+@media (max-width:720px){
+  header h1{font-size:21px} header p{display:none}
+  #panneau{top:auto;left:0;right:0;width:100%;height:62vh;border-left:none;border-top:1px solid var(--trait);border-radius:16px 16px 0 0;transform:translateY(105%)}
+  #panneau.ouvert{transform:translateY(0)}
+  footer{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>L'arbre de la Bible</h1>
+  <p>explorer sa structure, branche par branche</p>
+</header>
+
+<svg id="scene"></svg>
+
+<div class="outils">
+  <button id="btn-replier" title="Refermer toutes les branches">Replier</button>
+  <button id="btn-centrer" title="Revenir à la racine">Recentrer</button>
+</div>
+
+<aside id="panneau" aria-label="Explication du nœud choisi">
+  <button id="fermer" aria-label="Fermer">×</button>
+  <div class="haut">
+    <nav id="fil"></nav>
+    <div id="ptitre"><h2 id="pnom"></h2><span id="pref"></span></div>
+    <p id="psub"></p>
+  </div>
+  <div id="pcorps"></div>
+  <div id="enfants"></div>
+</aside>
+
+<footer>Les textes suivent le canon large (Septante) ; les livres deutérocanoniques sont signalés.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="data.js"></script>
+<script>
+const svg = d3.select("#scene");
+const g = svg.append("g");
+const gLiens = g.append("g");
+const gNoeuds = g.append("g");
+
+const racine = d3.hierarchy(BIBLE, d => d.c);
+racine.x0 = 0; racine.y0 = 0;
+let compteur = 0;
+racine.each(d => { d.id = ++compteur; });
+
+// au départ : racine + testaments visibles, le reste replié
+racine.children.forEach(replier);
+function replier(d){ if (d.children){ d._children = d.children; d._children.forEach(replier); d.children = null; } }
+
+const arbre = d3.tree().nodeSize([46, 250]);
+const diag = d3.linkHorizontal().x(d => d.y).y(d => d.x);
+
+function couleur(d){
+  if (d.depth === 0) return "var(--encre)";
+  const t = d.ancestors().find(a => a.depth === 1);
+  const at = t && t.data.n.startsWith("Ancien");
+  return d.depth <= 2 ? (at ? "var(--at)" : "var(--nt)") : (at ? "var(--at-doux)" : "var(--nt-doux)");
+}
+
+let actif = racine;
+
+function maj(source){
+  arbre(racine);
+  const noeuds = racine.descendants();
+  const liens = racine.links();
+  const t = svg.transition().duration(340);
+
+  const lien = gLiens.selectAll("path").data(liens, d => d.target.id);
+  lien.enter().append("path").attr("class","lien")
+      .attr("d", () => { const o = {x: source.x0, y: source.y0}; return diag({source: o, target: o}); })
+    .merge(lien).transition(t).attr("d", diag);
+  lien.exit().transition(t)
+      .attr("d", () => { const o = {x: source.x, y: source.y}; return diag({source: o, target: o}); })
+      .remove();
+
+  const noeud = gNoeuds.selectAll("g.noeud").data(noeuds, d => d.id);
+  const entree = noeud.enter().append("g").attr("class","noeud")
+      .attr("transform", `translate(${source.y0},${source.x0})`)
+      .on("click", (ev, d) => { basculer(d); choisir(d); });
+  entree.append("circle").attr("r", 6.5);
+  entree.append("text").attr("dy","0.32em").attr("x", 12);
+  entree.append("text").attr("class","ss").attr("dy","1.55em").attr("x", 12);
+
+  const tout = entree.merge(noeud);
+  tout.classed("actif", d => d === actif);
+  tout.select("circle")
+      .attr("fill", d => (d._children ? couleur(d) : "var(--carte)"))
+      .attr("stroke", couleur);
+  tout.select("text").text(d => d.data.n);
+  tout.select("text.ss").text(d => (d.children || !d.data.s) ? "" : d.data.s);
+  tout.transition(t).attr("transform", d => `translate(${d.y},${d.x})`);
+  noeud.exit().transition(t).attr("transform", `translate(${source.y},${source.x})`).style("opacity",0).remove();
+
+  noeuds.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+}
+
+function basculer(d){
+  if (d.children){ d._children = d.children; d.children = null; }
+  else if (d._children){ d.children = d._children; d._children = null; }
+}
+
+function choisir(d){
+  actif = d;
+  maj(d);
+  cadrer(d);
+  remplirPanneau(d);
+  document.getElementById("panneau").classList.add("ouvert");
+}
+
+function remplirPanneau(d){
+  const fil = d.ancestors().reverse();
+  d3.select("#fil").html("").selectAll("span").data(fil).enter().append("span")
+    .html((a,i) => (i ? " › " : ""))
+    .append("a").text(a => a.data.n)
+    .on("click", (ev,a) => { ev.preventDefault(); deplierJusqua(a); choisir(a); });
+  document.getElementById("pnom").textContent = d.data.n;
+  const ref = document.getElementById("pref");
+  ref.textContent = d.data.r || ""; ref.style.display = d.data.r ? "" : "none";
+  document.getElementById("psub").textContent = d.data.s || "";
+  const corps = d3.select("#pcorps").html("");
+  (d.data.d || "").split("\n\n").forEach(p => corps.append("p").text(p));
+  const enf = d3.select("#enfants").html("");
+  const liste = d.children || d._children;
+  if (liste && liste.length){
+    enf.append("div").attr("class","et").text("Explorer plus loin");
+    const puces = enf.append("div").attr("class","puces");
+    liste.forEach(e => {
+      puces.append("button").text(e.data.n).on("click", () => {
+        if (d._children){ d.children = d._children; d._children = null; }
+        if (e._children){ e.children = e._children; e._children = null; }
+        choisir(e);
+      });
+    });
+  }
+}
+
+function deplierJusqua(cible){
+  cible.ancestors().forEach(a => { if (a._children){ a.children = a._children; a._children = null; } });
+}
+
+// zoom et déplacement
+const zoom = d3.zoom().scaleExtent([0.35, 2.5]).on("zoom", ev => g.attr("transform", ev.transform));
+svg.call(zoom).on("dblclick.zoom", null);
+
+function cadrer(d){
+  const l = window.innerWidth, h = window.innerHeight;
+  const k = d3.zoomTransform(svg.node()).k;
+  const panneauOuvert = window.innerWidth > 720;
+  const cx = (l - (panneauOuvert ? 420 : 0)) * 0.38;
+  svg.transition().duration(420).call(zoom.transform,
+    d3.zoomIdentity.translate(cx - d.y * k, h * 0.45 - d.x * k).scale(k));
+}
+
+function centrer(){
+  svg.transition().duration(420).call(zoom.transform,
+    d3.zoomIdentity.translate(90, window.innerHeight * 0.45).scale(1));
+}
+
+document.getElementById("btn-replier").onclick = () => {
+  racine.children && racine.children.forEach(c => { replier(c); });
+  actif = racine; maj(racine); centrer(); remplirPanneau(racine);
+};
+document.getElementById("btn-centrer").onclick = centrer;
+document.getElementById("fermer").onclick = () => document.getElementById("panneau").classList.remove("ouvert");
+window.addEventListener("resize", () => maj(racine));
+
+maj(racine);
+centrer();
+remplirPanneau(racine);
+document.getElementById("panneau").classList.add("ouvert");
+</script>
+</body>
+</html>
